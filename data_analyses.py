@@ -1,60 +1,72 @@
 import pandas as pd
 import seaborn as sns
+import numpy as np
 import matplotlib.pyplot as plt
-
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
 
-# loading dataset
+
+# Load the dataset
 df = pd.read_csv("data/dataset.csv")
 
-# data preview
-print(df.head())
+# Display data types in the DataFrame
+print("Data types in DataFrame:")
+print(df.dtypes)
 
-# check for missing values
-print(df.isnull().sum())
+# Display descriptive statistics
+print(df.describe(include='all'))
 
-# filling gaps with average values
-df.fillna(df.mean(), inplace=True)
+# Display the distribution of the target variable
+target_counts = df['target'].value_counts()
+print("Distribution of target variable:")
+print(target_counts)
 
-# descriptive statistics
-print(df.describe())
+# Split the dataset into training and test sets
+X = df.drop(['target', 'id', 'sample_type'], axis=1)  # Features
+y = df['target']  # Target variable
 
-# visualization of distribution of the target variable
-sns.countplot(x="target", data=df)
-plt.title("Distribution of Target Variable")
-plt.show()
-
-# correlation matrix
-correlation_matrix = df.corr()
-plt.figure(figsize=(10, 8))
-sns.heatmap(correlation_matrix, annot=True, fmt=".2f")
-plt.title("Correlation Matrix")
-plt.show()
-
-# definition of feature and target variable
-X = df.drop("target", axis=1)
-y = df["target"]
-
-# separation into training and test sets
+# Splitting the dataset into train and test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# training the model
-model = LogisticRegression()
+# Initialize the Random Forest Classifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+# Fit the model on the training data
 model.fit(X_train, y_train)
 
-# prediction
+# Make predictions on the test data
 y_pred = model.predict(X_test)
 
-# accuracy score
+# Calculate accuracy of the model
 accuracy = accuracy_score(y_test, y_pred)
-print(f"Accuracy: {accuracy}")
+print(f"Accuracy: {accuracy:.2f}")
 
-# construction of the mixing matrix
-cm = confusion_matrix(y_test, y_pred)
-sns.heatmap(cm, annot=True, fmt="d")
-plt.title("Confusion matrix")
-plt.xlabel("Predicted")
-plt.ylabel("Actual")
+# Create and display the confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:")
+print(conf_matrix)
+
+# Display feature importances
+importance = model.feature_importances_
+feature_names = X.columns
+
+# Ensure that the lengths match before creating the DataFrame
+if len(importance) == len(feature_names):
+    feature_importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': importance})
+    feature_importance_df = feature_importance_df.sort_values(by='Importance', ascending=False)
+
+    # Plotting feature importance
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x='Importance', y='Feature', data=feature_importance_df.head(10))
+    plt.title('Top 10 Feature Importances')
+    plt.xlabel('Importance')
+    plt.ylabel('Feature')
+    plt.show()
+else:
+    raise ValueError("The lengths of importances and feature names do not match.")
+
+# Visualizing the distribution of the target variable
+sns.countplot(data=df, x='target')
+plt.title('Distribution of Target Variable')
 plt.show()
